@@ -13,6 +13,12 @@ import javax.sql.DataSource;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.export.JRCsvExporter;
+import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
+import net.sf.jasperreports.export.SimpleWriterExporterOutput;
+import net.sf.jasperreports.export.SimpleXlsxReportConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.InputStreamResource;
@@ -59,7 +65,7 @@ public class ReporteServiceImpl implements ReporteService{
                  InputStream elReporte = fuente.getInputStream();
                  
                  //se genera el reporte segun la definicion... .jasper
-                 var reportejasper 
+                 var reporteJasper 
                          =JasperFillManager.fillReport(
                                  elReporte,
                                  parametros,
@@ -79,14 +85,47 @@ public class ReporteServiceImpl implements ReporteService{
                      case "pdf","vPdf"->{
                          JasperExportManager
                                  .exportReportToPdfStream(
-                                         reportejasper,
+                                         reporteJasper,
                                          salida);
                          mediaType = MediaType.APPLICATION_PDF;
                          archivoSalida = reporte+".pdf";
                      }
+                     case "Xls" -> {
+                    JRXlsxExporter exportador = new JRXlsxExporter();
+                    exportador.setExporterInput(
+                            new SimpleExporterInput(
+                                    reporteJasper));
+                    exportador.setExporterOutput(
+                            new SimpleOutputStreamExporterOutput(
+                                    salida));
+                    SimpleXlsxReportConfiguration configuracion=
+                            new SimpleXlsxReportConfiguration();
+                    configuracion.setDetectCellType(true);
+                    configuracion.setCollapseRowSpan(true);
+                    exportador.setConfiguration(configuracion);
+                    exportador.exportReport();
+                    mediaType = MediaType.APPLICATION_OCTET_STREAM;
+                    archivoSalida = reporte + ".xlsx";
+                }
+                   case "Csv" -> {
+                    JRCsvExporter exportador = new JRCsvExporter();
+                    exportador.setExporterInput(
+                            new SimpleExporterInput(
+                                    reporteJasper));
+                    exportador.setExporterOutput(
+                            new SimpleWriterExporterOutput(
+                                    salida));
+                    exportador.exportReport();
+                    mediaType = MediaType.TEXT_PLAIN;
+                    archivoSalida = reporte + ".csv";
+                    }  
+                     
+                     
                  }
                  
-                 //se recupera los bytes del reporte generado
+              
+                 
+                 //se toma el documento pdf y se transforma en bytes
                  data=salida.toByteArray();
                  
                  //se define los encabezados de la pagina a responder o descargar
